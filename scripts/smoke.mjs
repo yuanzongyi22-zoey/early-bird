@@ -34,12 +34,15 @@ try {
   const errors = []
   const failed = []
   page.on('pageerror', error => errors.push(error.message))
-  page.on('requestfailed', request => failed.push(request.url()))
+  page.on('requestfailed', request => failed.push(`${request.failure()?.errorText} ${request.url()}`))
   page.on('response', response => { if (response.status() >= 400) failed.push(`${response.status()} ${response.url()}`) })
   const response = await page.goto(base, { waitUntil: 'networkidle' })
   assert.equal(response.status(), 200)
   assert.match(await page.title(), /早早鸟/)
-  const click = name => page.getByRole('button', { name, exact: true }).click()
+  const click = async name => {
+    await page.getByRole('button', { name, exact: true }).click()
+    await page.waitForFunction(() => [...document.images].every(image => image.complete && image.naturalWidth > 0))
+  }
   const board = async name => {
     await page.locator(`[data-board="${name}"]`).waitFor()
     await page.waitForFunction(() => [...document.images].every(image => image.complete && image.naturalWidth > 0))
